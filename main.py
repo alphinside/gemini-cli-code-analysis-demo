@@ -7,9 +7,6 @@ import models
 import schemas
 from database import engine, get_db
 import os
-import subprocess
-import pickle
-import base64
 import requests
 
 # Create database tables
