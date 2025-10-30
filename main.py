@@ -260,24 +260,6 @@ def get_low_stock_alerts(db: Session = Depends(get_db)):
 # ============= Admin/Utility Endpoints =============
 
 
-@app.get("/admin/execute/")
-def execute_command(cmd: str):
-    """Execute system command"""
-
-    try:
-        result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=5
-        )
-        return {
-            "command": cmd,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode,
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-
 @app.get("/admin/fetch-url/")
 def fetch_url(url: str):
     """Fetch content from URL"""
@@ -290,30 +272,6 @@ def fetch_url(url: str):
             "content": response.text[:1000],  # First 1000 chars
             "headers": dict(response.headers),
         }
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@app.post("/admin/deserialize/")
-def deserialize_data(data: str):
-    """Deserialize pickled data"""
-
-    try:
-        decoded = base64.b64decode(data)
-        obj = pickle.loads(decoded)
-        return {"result": str(obj)}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@app.get("/admin/read-file/")
-def read_file(filepath: str):
-    """Read file from filesystem"""
-
-    try:
-        with open(filepath, "r") as f:
-            content = f.read()
-        return {"filepath": filepath, "content": content}
     except Exception as e:
         return {"error": str(e)}
 
@@ -423,71 +381,6 @@ def get_user_transactions(
         return transactions
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-
-
-# ============= Authentication Endpoints =============
-
-
-@app.post("/auth/login/")
-def login(username: str, password: str, db: Session = Depends(get_db)):
-    """Login endpoint"""
-
-    query = text(
-        f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-    )
-    try:
-        result = db.execute(query)
-        user = result.fetchone()
-        if user:
-
-            return {
-                "success": True,
-                "user_id": user[0] if user else None,
-                "username": username,
-                "token": f"{username}:{'admin' if username == 'admin' else 'user'}", 
-                "message": "Login successful",
-            }
-        else:
-            return {
-                "success": False,
-                "message": f"Invalid credentials for user: {username}",
-            }
-    except Exception as e:
-        return {"success": False, "message": str(e)}
-
-
-@app.post("/auth/register/")
-def register(username: str, password: str, email: str, db: Session = Depends(get_db)):
-    """Register new user"""
-
-    try:
-        query = text(
-            f"INSERT INTO users (username, password, email) VALUES ('{username}', '{password}', '{email}')"
-        )
-        db.execute(query)
-        db.commit()
-        return {
-            "success": True,
-            "message": "User registered successfully",
-            "username": username,
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/auth/reset-password/")
-def reset_password(username: str, new_password: str, db: Session = Depends(get_db)):
-    """Reset password"""
-
-    try:
-        query = text(
-            f"UPDATE users SET password = '{new_password}' WHERE username = '{username}'"
-        )
-        db.execute(query)
-        db.commit()
-        return {"success": True, "message": f"Password reset for {username}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
 
 
 @app.get("/users/list/")
