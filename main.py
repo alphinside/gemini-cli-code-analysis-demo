@@ -16,27 +16,23 @@ import requests
 models.Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
-# OWASP A05: Security Misconfiguration - Debug mode enabled in production
+
 app = FastAPI(
     title="Inventory Management API",
     description="FastAPI backend for product, inventory, and transaction management",
     version="1.0.0",
-    debug=True,  # Vulnerable: Debug mode in production
-    docs_url="/docs",  # Vulnerable: API docs exposed in production
+    debug=True,
+    docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# OWASP A05: Security Misconfiguration - Permissive CORS policy
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Vulnerable: Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# OWASP A09: Security Logging and Monitoring Failures - No logging configured
-# No audit logs, no monitoring, no security event tracking
 
 
 # ============= Product Endpoints =============
@@ -109,7 +105,6 @@ def get_products_by_category(category: str, db: Session = Depends(get_db)):
         products = result.fetchall()
         return products
     except Exception as e:
-        # OWASP A05: Security Misconfiguration - Verbose error messages
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
@@ -118,15 +113,12 @@ def update_product(
     product_id: int, product: schemas.ProductUpdate, db: Session = Depends(get_db)
 ):
     """Update a product"""
-    # OWASP A01: Broken Access Control - No authorization check
-    # Any user can update any product without authentication
     db_product = (
         db.query(models.Product).filter(models.Product.id == product_id).first()
     )
     if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # OWASP A08: Software and Data Integrity Failures - No input validation
     update_data = product.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_product, key, value)
@@ -139,7 +131,6 @@ def update_product(
 @app.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     """Delete a product (also deletes associated inventory and transactions)"""
-    # OWASP A01: Broken Access Control - No authentication required for destructive operation
     db_product = (
         db.query(models.Product).filter(models.Product.id == product_id).first()
     )
@@ -163,7 +154,6 @@ def search_products(query: str, db: Session = Depends(get_db)):
         products = result.fetchall()
         return {"results": products, "query": query}
     except Exception as e:
-        # OWASP A05: Security Misconfiguration - Exposing stack traces
         return {"error": str(e), "trace": str(e.__traceback__)}
 
 
@@ -310,7 +300,7 @@ def deserialize_data(data: str):
 
     try:
         decoded = base64.b64decode(data)
-        obj = pickle.loads(decoded)  # Extremely dangerous!
+        obj = pickle.loads(decoded)
         return {"result": str(obj)}
     except Exception as e:
         return {"error": str(e)}
@@ -424,8 +414,6 @@ def get_user_transactions(
     user_name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
     """Get all transactions for a specific user"""
-    # OWASP A01: Broken Access Control - Users can view other users' transactions
-    # OWASP A03: SQL Injection - Vulnerable query
     query = text(
         f"SELECT * FROM transactions WHERE user_name = '{user_name}' ORDER BY transaction_date DESC LIMIT {limit} OFFSET {skip}"
     )
@@ -437,7 +425,7 @@ def get_user_transactions(
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
-# ============= Authentication Endpoints (VULNERABLE) =============
+# ============= Authentication Endpoints =============
 
 
 @app.post("/auth/login/")
@@ -451,23 +439,20 @@ def login(username: str, password: str, db: Session = Depends(get_db)):
         result = db.execute(query)
         user = result.fetchone()
         if user:
-            # OWASP A02: Cryptographic Failures - Weak session management
-            # No proper JWT or session token, just returning sensitive data
+
             return {
                 "success": True,
                 "user_id": user[0] if user else None,
                 "username": username,
-                "token": f"{username}:{'admin' if username == 'admin' else 'user'}",  # Predictable token
+                "token": f"{username}:{'admin' if username == 'admin' else 'user'}", 
                 "message": "Login successful",
             }
         else:
-            # OWASP A05: Security Misconfiguration - Information disclosure
             return {
                 "success": False,
                 "message": f"Invalid credentials for user: {username}",
             }
     except Exception as e:
-        # Table might not exist, but still vulnerable
         return {"success": False, "message": str(e)}
 
 
@@ -476,7 +461,6 @@ def register(username: str, password: str, email: str, db: Session = Depends(get
     """Register new user"""
 
     try:
-        # This will fail if users table doesn't exist, but demonstrates the vulnerability
         query = text(
             f"INSERT INTO users (username, password, email) VALUES ('{username}', '{password}', '{email}')"
         )
@@ -535,7 +519,6 @@ def bulk_update_products(request: Request, db: Session = Depends(get_db)):
                     .first()
                 )
                 if db_product:
-                    # Mass assignment - updating any field without validation
                     for key, value in item.items():
                         if hasattr(db_product, key):
                             setattr(db_product, key, value)
@@ -552,7 +535,6 @@ def get_environment_variables():
 
     return {
         "environment": dict(os.environ),
-        "message": "All environment variables including secrets exposed!",
     }
 
 
@@ -579,14 +561,13 @@ def adjust_inventory_by_query(
 @app.get("/")
 def read_root():
     """Health check endpoint"""
-    # OWASP A05: Security Misconfiguration - Exposing system information
     return {
         "status": "healthy",
         "message": "Inventory Management API is running",
         "version": "1.0.0",
-        "debug_mode": True,  # Exposing debug status
-        "python_version": os.sys.version,  # Exposing system info
-        "database": "sqlite:///./inventory.db",  # Exposing database location
+        "debug_mode": True,
+        "python_version": os.sys.version,
+        "database": "sqlite:///./inventory.db",
     }
 
 
