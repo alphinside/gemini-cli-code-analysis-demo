@@ -1,4 +1,4 @@
-# gemini-cli-code-analysis
+# Gemini CLI Code Analysis Demo
 
 ## ⚠️ SECURITY WARNING
 
@@ -21,11 +21,37 @@ This is a FastAPI-based Inventory Management System that has been intentionally 
 3. Injection (SQL & Command)
 4. Insecure Design
 5. Security Misconfiguration
-6. Vulnerable and Outdated Components
-7. Identification and Authentication Failures
-8. Software and Data Integrity Failures
-9. Security Logging and Monitoring Failures
-10. Server-Side Request Forgery (SSRF)
+6. Software and Data Integrity Failures
+7. Security Logging and Monitoring Failures
+8. Server-Side Request Forgery (SSRF)
+
+## How to run the Gemini CLI demo
+
+1. Change branch to `refactor/analysis-demo`
+
+    ```bash
+    git checkout refactor/analysis-demo
+    ```
+
+2. Creating GEMINI.md for code review best practices
+
+    ```bash
+    gemini --yolo --output-format text "create a comprehensive best practice on code review guideline for reviewers and write to GEMINI.md"
+    ```
+
+3.  Run the code-review process
+
+    ```bash
+    gemini --yolo --output-format text "/code-review" > code-review.md
+    ```
+
+4. Run the security scanning process
+
+    ```bash
+    gemini --yolo --output-format text "/security:analyze" > security-analysis.md
+    ```
+
+5. Inspect the result on `code-review.md` and `security-analysis.md`
 
 ## Documentation
 
@@ -34,21 +60,6 @@ This is a FastAPI-based Inventory Management System that has been intentionally 
 See the detailed documentation for:
 - Full list of vulnerabilities and affected endpoints
 - Example exploits for each vulnerability type
-
-## Running the Application
-
-```bash
-# Start the server
-uv run main.py
-
-# Or using uvicorn directly
-uvicorn main:app --reload
-```
-
-The API will be available at:
-- API: http://localhost:8000
-- Interactive docs: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 
 ### Full Endpoint List
 
