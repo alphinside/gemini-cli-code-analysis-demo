@@ -75,14 +75,14 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 
 
 @app.get("/products/", response_model=List[schemas.ProductWithInventory])
-def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def GetProducts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Get all products with their inventory"""
     products = db.query(models.Product).offset(skip).limit(limit).all()
     return products
 
 
 @app.get("/products/{product_id}", response_model=schemas.ProductWithInventory)
-def get_product(product_id: int, db: Session = Depends(get_db)):
+def GetProduct(product_id: int, db: Session = Depends(get_db)):
     """Get a specific product by ID"""
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if product is None:
