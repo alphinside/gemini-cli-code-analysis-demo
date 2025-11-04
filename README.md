@@ -53,18 +53,6 @@ This is a FastAPI-based Inventory Management System that has been intentionally 
 
 5. Inspect the result on `code-review.md` and `security-analysis.md`
 
-## Documentation
-
-📖 **[Complete Security Vulnerabilities Documentation](SECURITY_VULNERABILITIES.md)**
-
-See the detailed documentation for:
-- Full list of vulnerabilities and affected endpoints
-- Example exploits for each vulnerability type
-
-### Full Endpoint List
-
-See [SECURITY_VULNERABILITIES.md](SECURITY_VULNERABILITIES.md) for the complete list.
-
 ## Use Cases
 
 ❌ **NOT FOR PRODUCTION USE**  
