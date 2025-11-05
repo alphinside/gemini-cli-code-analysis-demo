@@ -209,3 +209,9 @@ __marimo__/
 # SQLite database
 *.db
 inventory.db
+
+# gemini-cli settings
+.gemini/
+
+# GitHub App credentials
+gha-creds-*.json
